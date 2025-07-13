@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Negocios locales de Valladolid - Aldea Pucela</title>
+    <link rel="icon" type="image/png" href="https://aldeapucela.org/img/logo.jpg">
+    <!-- Social Media Meta Tags -->
+    <meta property="og:title" content="Negocios locales de Valladolid - Aldea Pucela">
+    <meta property="og:description" content="Descubre los negocios de proximidad de Valladolid">
+    <meta property="og:image" content="https://aldeapucela.org/img/logo.jpg">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="es_ES">
+    <meta property="og:url" content="https://aldeapucela.org/negocios/">
+    <meta name="twitter:card" content="summary_small_image">
+    <meta name="twitter:title" content="Negocios locales de Valladolid - Aldea Pucela">
+    <meta name="twitter:description" content="Descubre los negocios de proximidad de Valladolid">
+    <meta name="twitter:image" content="https://aldeapucela.org/img/logo.jpg">
+    <!-- Fin Social Media Meta Tags -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/listado.css" /><!-- (opcional, para overrides) -->
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <header class="sticky top-0 z-40 bg-white shadow border-b border-gray-200">
+    <div class="container mx-auto px-4 py-2 grid grid-cols-[auto_1fr_auto] items-center">
+      <div class="flex justify-start">
+        <a href="https://aldeapucela.org/negocios/" class="text-[#786698] hover:text-[#5e507a]" title="Comercios locales">
+          <i class="fa-solid fa-store text-3xl"></i>
+        </a>
+      </div>
+      <div class="flex justify-center">
+        <h1 class="font-semibold tracking-wide px-2 py-0.5 rounded text-center text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer text-base md:text-lg lg:text-xl" style="font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;">Negocios locales de Valladolid</h1>
+      </div>
+      <div class="flex justify-end">
+        <a href="https://aldeapucela.org/negocios/publica" target="_blank" id="float-btn" title="Publica tu negocio local"
+           class="text-white text-2xl w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-colors duration-200 border-2 focus:outline-none"
+           style="background:#786698;border-color:#786698;"
+           onmouseover="this.style.background='#5e507a'" onmouseout="this.style.background='#786698'" onfocus="this.style.background='#5e507a'" onblur="this.style.background='#786698'">+</a>
+      </div>
+    </div>
+    <div class="w-full bg-gray-50 border-t border-b border-gray-200 py-2 px-4 flex items-center gap-3">
+      <span class="flex items-center">
+        <img src="https://aldeapucela.org/img/logo.jpg" alt="Aldea Pucela Logo" class="w-14 h-8 rounded-full border-2 border-[#786698] shadow" />
+      </span>
+      <span class="text-gray-700 text-sm">
+        Esta lista está mantenida por 
+        <a href="https://aldeapucela.org/" class="underline text-[#786698] hover:text-[#5e507a]" target="_blank">Aldea Pucela</a> · 
+        Licencia de contenido <a href="https://opendatacommons.org/licenses/odbl/summary/" class="underline text-[#786698] hover:text-[#5e507a]" target="_blank">ODBL 1.0</a> · Fotos <a href="https://creativecommons.org/licenses/by-sa/4.0/" class="underline text-[#786698] hover:text-[#5e507a]" target="_blank">CC BY-SA 4.0</a>
+      </span>
+    </div>
+  </header>
+  <main class="w-full px-0 py-4">
+    <div id="map" class="w-full rounded-none shadow-none mb-6 mt-0" style="height:50vh;"></div>
+    <div class="flex justify-center items-center mb-4 gap-3 flex-wrap">
+        <button id="cardViewBtn" title="Vista tarjetas" class="px-4 py-2 rounded-full border border-gray-300 bg-white text-base font-medium shadow-sm text-[#786698] hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-[#786698] transition-colors active:bg-blue-500 active:text-white active:border-[#786698] flex items-center justify-center">
+            <i class="fa-solid fa-th text-lg"></i>
+        </button>
+        <button id="listViewBtn" title="Vista listado" class="px-4 py-2 rounded-full border border-gray-300 bg-white text-base font-medium shadow-sm text-[#786698] hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-[#786698] transition-colors active:bg-blue-500 active:text-white active:border-[#786698] flex items-center justify-center">
+            <i class="fa-solid fa-list text-lg"></i>
+        </button>
+        <div class="relative">
+            <button id="filterTypeBtn" class="px-4 py-2 rounded-full border border-gray-300 bg-white text-base font-medium shadow-sm flex items-center gap-2 text-[#786698] focus:outline-none focus:ring-2 focus:ring-[#786698] transition-colors">
+                <i class="fa-solid fa-filter"></i>
+                <span id="filterTypeLabel">Filtrar tipo</span>
+                <i class="fa-solid fa-chevron-down text-xs"></i>
+            </button>
+            <div id="filterTypeDropdown" class="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-10 hidden max-h-60 overflow-y-auto"></div>
+        </div>
+    </div>
+    <div class="negocio-list flex flex-wrap gap-6 max-w-5xl mx-auto" id="negocio-list"></div>
+    <div id="negocio-table-container" class="max-w-5xl mx-auto" style="display:none;"></div>
+    <div class="w-full" style="min-height:80px;"></div>
+  </main>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="js/categorias.js"></script>
+    <script src="js/listado.js"></script>
+<script src="js/compartir.js"></script>
+<script src="js/volverListado.js"></script>
+<script src="js/bluesky-comments.js"></script>
+<script src="js/modal-bluesky.js"></script>
+<script src="js/bluesky-ui.js"></script>
+</body>
+</html>
