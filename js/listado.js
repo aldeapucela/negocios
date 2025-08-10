@@ -25,7 +25,7 @@ function getCategoriaFromUrl() {
  * Carga los negocios desde la API, inicializa el filtro y renderiza todo.
  */
 async function cargarNegocios() {
-    const url = 'https://tasks.nukeador.com/webhook/negocios-json';
+    const url = 'https://proyectos.aldeapucela.org/exports/negocios/all.json';
     const resp = await fetch(url);
     const negocios = await resp.json();
     negociosData = negocios;

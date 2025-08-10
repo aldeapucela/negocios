@@ -1,73 +1,89 @@
 // bluesky-ui.js
-// Lógica para rellenar los contadores de likes y comentarios, y gestionar el modal en las tarjetas
+// Adaptador para el sistema optimizado de Bluesky con lazy loading
 
-const blueskyStatsCache = {};
-const blueskyStatsPending = {};
+// DEPRECADO: Este sistema ha sido reemplazado por bluesky-optimized.js
+// Se mantiene por compatibilidad pero delegará al nuevo sistema
 
-// Debounce para evitar ejecuciones excesivas
-let blueskyUpdateCountsTimeout = null;
-function blueskyUpdateCountsDebounced() {
-  if (blueskyUpdateCountsTimeout) clearTimeout(blueskyUpdateCountsTimeout);
-  blueskyUpdateCountsTimeout = setTimeout(blueskyUpdateCounts, 500);
+// Función de compatibilidad que inicializa el nuevo sistema
+function initBlueskyUICompat() {
+  if (typeof window.initBlueskyOptimized === 'function') {
+    // Usar el nuevo sistema optimizado
+    window.initBlueskyOptimized();
+    console.log('Using optimized Bluesky system with lazy loading');
+  } else {
+    // Fallback al sistema anterior si el optimizado no está disponible
+    console.warn('Bluesky optimized system not available, using fallback');
+    initFallbackSystem();
+  }
 }
 
-function blueskyUpdateCounts() {
-  // Botón de comentarios
-  document.querySelectorAll('.bluesky-comments-btn[data-bluesky-post]').forEach(btn => {
+// Sistema de fallback (versión simplificada del original)
+function initFallbackSystem() {
+  const cache = {};
+  const pending = {};
+  let requestCount = 0;
+  const MAX_CONCURRENT = 3;
+
+  async function updateElement(element, postId) {
+    if (cache[postId] || pending[postId] || requestCount >= MAX_CONCURRENT) {
+      return;
+    }
+
+    pending[postId] = true;
+    requestCount++;
+
+    try {
+      const stats = await window.getBlueskyCommentsStats(postId);
+      cache[postId] = stats;
+      
+      // Actualizar contador de comentarios
+      const commentCount = element.querySelector('.bluesky-comments-count');
+      if (commentCount) {
+        commentCount.textContent = stats.commentCount > 0 ? stats.commentCount : '';
+      }
+      
+      // Actualizar enlace de likes
+      const likesBtn = element.parentElement?.querySelector('.bluesky-likes-btn');
+      if (likesBtn) {
+        const likesCount = likesBtn.querySelector('.bluesky-likes-count');
+        if (likesCount) {
+          likesCount.textContent = stats.likeCount > 0 ? stats.likeCount : '';
+        }
+        if (stats.threadUrl) {
+          likesBtn.href = stats.threadUrl;
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to load stats for ${postId}:`, error);
+    } finally {
+      delete pending[postId];
+      requestCount--;
+    }
+  }
+
+  // Configurar elementos existentes con throttling
+  const elements = document.querySelectorAll('.bluesky-comments-btn[data-bluesky-post]');
+  elements.forEach((btn, index) => {
     const postId = btn.getAttribute('data-bluesky-post');
     const negocioNombre = btn.getAttribute('data-negocio-nombre') || '';
-    const commentsCountSpan = btn.querySelector('.bluesky-comments-count');
-    btn.onclick = async () => {
-      // Asegura que el modal use los datos cacheados si existen
-      if (blueskyStatsCache[postId]) {
-        window.showBlueskyCommentsModal(postId, negocioNombre, blueskyStatsCache[postId]);
+    
+    // Configurar click handler
+    btn.onclick = () => {
+      if (cache[postId]) {
+        window.showBlueskyCommentsModal(postId, negocioNombre, cache[postId]);
       } else {
         window.showBlueskyCommentsModal(postId, negocioNombre);
       }
     };
-    if (blueskyStatsCache[postId]) {
-      if (commentsCountSpan) commentsCountSpan.textContent = blueskyStatsCache[postId].commentCount > 0 ? blueskyStatsCache[postId].commentCount : '';
-    } else if (!blueskyStatsPending[postId]) {
-      blueskyStatsPending[postId] = true;
-      window.getBlueskyCommentsStats(postId).then(stats => {
-        blueskyStatsCache[postId] = stats;
-        delete blueskyStatsPending[postId];
-        if (commentsCountSpan) commentsCountSpan.textContent = stats.commentCount > 0 ? stats.commentCount : '';
-      }).catch(() => { delete blueskyStatsPending[postId]; });
-    }
-  });
-  // Botón/enlace de likes
-  document.querySelectorAll('.bluesky-likes-btn').forEach(link => {
-    let postId = link.getAttribute('data-bluesky-post');
-    if (!postId) {
-      const m = link.href.match(/post\/(\w+)$/);
-      if (m) postId = m[1];
-    }
-    const likesCountSpan = link.querySelector('.bluesky-likes-count');
-    if (!postId || !likesCountSpan) return;
-    if (blueskyStatsCache[postId]) {
-      likesCountSpan.textContent = blueskyStatsCache[postId].likeCount > 0 ? blueskyStatsCache[postId].likeCount : '';
-      link.href = blueskyStatsCache[postId].threadUrl;
-    } else if (!blueskyStatsPending[postId]) {
-      blueskyStatsPending[postId] = true;
-      window.getBlueskyCommentsStats(postId).then(stats => {
-        blueskyStatsCache[postId] = stats;
-        delete blueskyStatsPending[postId];
-        likesCountSpan.textContent = stats.likeCount > 0 ? stats.likeCount : '';
-        link.href = stats.threadUrl;
-      }).catch(() => { delete blueskyStatsPending[postId]; });
-    }
+
+    // Cargar con delay escalonado
+    setTimeout(() => {
+      updateElement(btn, postId);
+    }, index * 500); // 500ms entre cada elemento
   });
 }
 
+// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-  blueskyUpdateCounts();
-  // Observa cambios en el contenedor de tarjetas para actualizar contadores dinámicamente (con debounce)
-  const listCont = document.getElementById('negocio-list');
-  if (listCont) {
-    const observer = new MutationObserver(() => {
-      blueskyUpdateCountsDebounced();
-    });
-    observer.observe(listCont, { childList: true, subtree: true });
-  }
+  initBlueskyUICompat();
 });

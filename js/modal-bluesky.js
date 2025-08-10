@@ -31,7 +31,7 @@
   }
 
   // Expone función global para abrir el modal y cargar comentarios
-  window.showBlueskyCommentsModal = async function(postId, negocioNombre) {
+  window.showBlueskyCommentsModal = async function(postId, negocioNombre, cachedStats = null) {
     const modal = ensureModal();
     const body = document.getElementById('bluesky-modal-body');
     // Enlace destacado arriba
@@ -39,49 +39,59 @@
     const addCommentLink = `<a href="${threadUrl}" target="_blank" rel="noopener" class="bluesky-add-comment-link block w-full text-center mb-3 font-semibold text-[#786698] hover:text-[#5e507a] transition-all" style="background:none;border:none;padding:0;text-decoration:underline dotted transparent;cursor:pointer;"><i class='fa-regular fa-comment-dots mr-2'></i>Añadir un comentario</a>`;
     body.innerHTML = addCommentLink;
     modal.style.display = 'flex';
-    // Carga comentarios
+    
+    // Si tenemos datos cacheados, usarlos inmediatamente
+    if (cachedStats) {
+      renderComments(body, cachedStats, addCommentLink);
+      return;
+    }
+    
+    // Carga comentarios si no están cacheados
     body.innerHTML += `<div class='text-center text-gray-400 py-4'>Cargando comentarios...</div>`;
     try {
       const stats = await window.getBlueskyCommentsStats(postId);
       body.innerHTML = addCommentLink;
-      if (stats.commentCount === 0) {
-        body.innerHTML += `<div class='text-gray-500 text-center py-6'><i class='fa-regular fa-comment-dots text-3xl mb-2'></i><br>Se el primero en comentar...</div>`;
-        // Enlace abajo aunque no haya comentarios
-        body.innerHTML += addCommentLink;
-        return;
-      }
-      const commentsList = document.createElement('ul');
-      commentsList.className = 'mb-2';
-      stats.comments.slice().sort((a,b) => new Date(a.post.indexedAt) - new Date(b.post.indexedAt)).forEach(reply => {
-        if (!reply?.post?.record?.text) return;
-        const author = reply.post.author;
-        const li = document.createElement('li');
-        li.className = 'mb-4 p-3 bg-[#f7f5fb] rounded shadow-sm';
-        li.innerHTML = `
-          <div class="flex items-center gap-3 mb-2">
-            <img src="${author.avatar || ''}" alt="avatar" class="w-7 h-7 rounded-full border border-instagram-200 bg-white object-cover" loading="lazy" />
-            <div>
-              <a href="https://bsky.app/profile/${author.did}" target="_blank" class="font-bold text-[#786698] hover:text-[#5e507a] text-sm">${author.displayName || author.handle}</a>
-              <span class="ml-2 text-xs text-gray-400">${window.timeAgo(reply.post.record.createdAt)}</span>
-            </div>
-          </div>
-          <p class="text-[#786698] text-sm mb-2">${reply.post.record.text}</p>
-          <div class="flex gap-2 text-xs text-gray-400">
-            <span><i class="fa-regular fa-comment"></i> ${reply.post.replyCount || 0}</span>
-            <span><i class="fa-solid fa-retweet"></i> ${reply.post.repostCount || 0}</span>
-            <span><i class="fa-regular fa-heart"></i> ${reply.post.likeCount || 0}</span>
-            <a href="https://bsky.app/profile/${author.did}/post/${reply.post.uri.split("/").pop()}" target="_blank" class="ml-auto text-[#786698] hover:text-[#5e507a]"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
-          </div>
-        `;
-        commentsList.appendChild(li);
-      });
-      body.appendChild(commentsList);
-      // Enlace destacado abajo
-      body.innerHTML += addCommentLink;
+      renderComments(body, stats, addCommentLink);
     } catch (e) {
-      body.innerHTML += `<div class='text-red-500 text-center py-6'>Error cargando comentarios</div>`;
-      // Enlace abajo si hay error
-      body.innerHTML += addCommentLink;
+      body.innerHTML = addCommentLink + `<div class='text-red-500 text-center py-6'>Error cargando comentarios</div>` + addCommentLink;
     }
   };
+  
+  // Función auxiliar para renderizar comentarios
+  function renderComments(body, stats, addCommentLink) {
+    if (stats.commentCount === 0) {
+      body.innerHTML += `<div class='text-gray-500 text-center py-6'><i class='fa-regular fa-comment-dots text-3xl mb-2'></i><br>Sé el primero en comentar...</div>`;
+      body.innerHTML += addCommentLink;
+      return;
+    }
+    
+    const commentsList = document.createElement('ul');
+    commentsList.className = 'mb-2';
+    stats.comments.slice().sort((a,b) => new Date(a.post.indexedAt) - new Date(b.post.indexedAt)).forEach(reply => {
+      if (!reply?.post?.record?.text) return;
+      const author = reply.post.author;
+      const li = document.createElement('li');
+      li.className = 'mb-4 p-3 bg-[#f7f5fb] rounded shadow-sm';
+      li.innerHTML = `
+        <div class="flex items-center gap-3 mb-2">
+          <img src="${author.avatar || ''}" alt="avatar" class="w-7 h-7 rounded-full border border-instagram-200 bg-white object-cover" loading="lazy" />
+          <div>
+            <a href="https://bsky.app/profile/${author.did}" target="_blank" class="font-bold text-[#786698] hover:text-[#5e507a] text-sm">${author.displayName || author.handle}</a>
+            <span class="ml-2 text-xs text-gray-400">${window.timeAgo ? window.timeAgo(reply.post.record.createdAt) : 'hace un tiempo'}</span>
+          </div>
+        </div>
+        <p class="text-[#786698] text-sm mb-2">${reply.post.record.text}</p>
+        <div class="flex gap-2 text-xs text-gray-400">
+          <span><i class="fa-regular fa-comment"></i> ${reply.post.replyCount || 0}</span>
+          <span><i class="fa-solid fa-retweet"></i> ${reply.post.repostCount || 0}</span>
+          <span><i class="fa-regular fa-heart"></i> ${reply.post.likeCount || 0}</span>
+          <a href="https://bsky.app/profile/${author.did}/post/${reply.post.uri.split("/").pop()}" target="_blank" class="ml-auto text-[#786698] hover:text-[#5e507a]"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+        </div>
+      `;
+      commentsList.appendChild(li);
+    });
+    body.appendChild(commentsList);
+    // Enlace destacado abajo
+    body.innerHTML += addCommentLink;
+  }
 })();
