@@ -3,7 +3,7 @@
 
 window.categorias = [
   {
-    nombre: 'Alimentacion',
+    nombre: 'Alimentación',
     icono: "<i class='fa-solid fa-apple-whole mr-1'></i>"
   },
   {
@@ -31,7 +31,7 @@ window.categorias = [
     icono: "<i class='fa-solid fa-screwdriver-wrench mr-1'></i>"
   },
   {
-    nombre: 'Servicios profesionales y formacion',
+    nombre: 'Servicios profesionales y formación',
     icono: "<i class='fa-solid fa-user-graduate mr-1'></i>"
   },
   {
